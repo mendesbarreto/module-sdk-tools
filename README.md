@@ -11,6 +11,7 @@ bun add -D "ssh://git@github.com/mendesbarreto/module-sdk-tools#<tag>"
 ## Commands
 
 ```bash
+sdk-tools init
 sdk-tools export-openapi
 sdk-tools build-js-sdk
 sdk-tools build-react-sdk
@@ -29,6 +30,10 @@ sdk-tools update-sdks --only module-personal-profile-react-sdk
 ## Config
 
 Create `sdk-tools.config.ts` in your project root.
+
+```bash
+sdk-tools init
+```
 
 ```ts
 import type { SdkToolsConfig } from 'module-sdk-tools';

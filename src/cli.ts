@@ -2,6 +2,7 @@
 import { buildJsSdk } from './commands/build-js-sdk';
 import { buildReactSdk } from './commands/build-react-sdk';
 import { exportOpenapi } from './commands/export-openapi';
+import { initConfig } from './commands/init';
 import { report } from './commands/report';
 import { updateSdks } from './commands/update-sdks';
 import { validateConfigCommand } from './commands/validate-config';
@@ -14,6 +15,7 @@ type CliOptions = {
   skipPack?: boolean;
   only?: string;
   failOnMissing?: boolean;
+  force?: boolean;
 };
 
 const [command, ...rest] = process.argv.slice(2);
@@ -28,6 +30,9 @@ try {
   switch (command) {
     case 'export-openapi':
       await exportOpenapi(options);
+      break;
+    case 'init':
+      await initConfig(options);
       break;
     case 'build-js-sdk':
       await buildJsSdk(options);
@@ -91,6 +96,9 @@ function parseOptions(args: string[]): CliOptions {
       case '--fail-on-missing':
         options.failOnMissing = true;
         break;
+      case '--force':
+        options.force = true;
+        break;
       default:
         break;
     }
@@ -103,6 +111,7 @@ function printHelp(): void {
   console.log(`Usage: sdk-tools <command> [options]
 
 Commands:
+  init
   export-openapi
   build-js-sdk
   build-react-sdk
@@ -118,5 +127,6 @@ Options:
   --skip-pack
   --only <name>
   --fail-on-missing
+  --force
 `);
 }
