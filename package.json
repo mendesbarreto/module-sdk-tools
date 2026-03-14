@@ -1,0 +1,20 @@
+{
+  "name": "module-sdk-tools",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "sdk-tools": "src/cli.ts"
+  },
+  "scripts": {
+    "format": "biome format --write --files-ignore-unknown=true",
+    "lint": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.5",
+    "@types/node": "^20.0.0"
+  }
+}

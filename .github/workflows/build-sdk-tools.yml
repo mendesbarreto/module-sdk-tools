@@ -1,0 +1,83 @@
+name: build-sdk-tools
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/**/*.ts"
+      - "package.json"
+      - ".github/workflows/build-sdk-tools.yml"
+    branches:
+      - master
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  GH_PAT: ${{ secrets.GH_PAT }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: General Git Setup
+        run: |
+          GIT_BRANCH=${{ github.ref }}
+          echo "REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}')" >> $GITHUB_ENV
+          echo "GIT_BRANCH=$(echo "${GIT_BRANCH/refs\/heads\//}")" >> $GITHUB_ENV
+          echo "COMMIT_DATE=$(git log -n 1 --pretty='format:%cd' --date=format:'%y-%m-%d')" >> $GITHUB_ENV
+          echo "COMMIT_TIME=$(git log -n 1 --pretty='format:%cd' --date=format:'%H-%M-%S')" >> $GITHUB_ENV
+          echo "CURRENT_DATETIME=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+          echo "GH_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-7)" >> $GITHUB_ENV
+          git config --global user.name "xpertsea-bot"
+          git config --global user.email "sysadmin@xpertsea.com"
+          git config --global url."https://${{ env.GH_PAT }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${{ env.GH_PAT }}:x-oauth-basic@github.com/".insteadOf "ssh://git@github.com/"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ env.GIT_BRANCH }}-${{ env.COMMIT_DATE }}-${{ env.COMMIT_TIME }}-${{ env.GH_SHA_SHORT }}"
+          jq --arg version "$VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Commit and tag
+        run: |
+          git add -A
+          git commit -m "chore: update sdk tools version ${{ env.VERSION }}" || true
+          git tag "${{ env.VERSION }}" || true
+
+      - name: Push changes
+        run: |
+          git pull --ff || true
+          git push -u --set-upstream origin ${{ env.GIT_BRANCH }} --tags
+          git status
+
+      - name: Job Summary
+        run: |
+          echo "## SDK Tools Build Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Package:** \`module-sdk-tools\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ env.VERSION }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Install" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+          echo "\"module-sdk-tools\": \"ssh://git@github.com:mendesbarreto/module-sdk-tools#${{ env.VERSION }}\"" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
