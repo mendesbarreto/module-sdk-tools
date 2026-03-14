@@ -1,6 +1,6 @@
 {
   "name": "module-sdk-tools",
-  "version": "0.1.0",
+  "version": "master-26-03-14-16-47-44-b1db4ed",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
