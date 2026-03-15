@@ -113,7 +113,11 @@ export async function updateSdks({
         cwd: projectRoot,
       });
     } catch (error) {
-      results.push({ name, previous: dep.spec, reason: 'failed to read tags' });
+      results.push({
+        name,
+        previous: dep.spec,
+        reason: `failed to read tags ${error}`,
+      });
       continue;
     }
 
