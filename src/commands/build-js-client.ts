@@ -73,9 +73,10 @@ export async function buildJsClient({
     }
   }
 
+  const useOptionsFlag = config.openapiClientUseOptions ? '--useOptions ' : '';
   const script =
     config.openapiClientScript ??
-    `bunx openapi-typescript-codegen --input ${openapiSpecPath} --output ${outputDir} --client ${config.openapiClientHttpClient ?? 'axios'}`;
+    `bunx openapi-typescript-codegen ${useOptionsFlag}--input ${openapiSpecPath} --output ${outputDir} --client ${config.openapiClientHttpClient ?? 'axios'}`;
 
   runCommand(script, { cwd: projectRoot, dryRun });
 }

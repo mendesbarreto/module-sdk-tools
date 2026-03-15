@@ -24,6 +24,7 @@ export type SdkToolsConfig = {
   openapiClientPackageName?: string;
   openapiClientHttpClient?: 'axios' | 'fetch';
   openapiClientScript?: string;
+  openapiClientUseOptions?: boolean;
   failOnMissingOperationId?: boolean;
 };
 
