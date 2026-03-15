@@ -14,6 +14,7 @@ bun add -D "ssh://git@github.com/mendesbarreto/module-sdk-tools#<tag>"
 sdk-tools init
 sdk-tools export-openapi
 sdk-tools build-js-sdk
+sdk-tools build-js-client
 sdk-tools build-react-sdk
 sdk-tools validate-config
 sdk-tools report
@@ -26,6 +27,12 @@ sdk-tools update-sdks
 sdk-tools update-sdks
 sdk-tools update-sdks --only module-personal-profile-react-sdk
 ```
+
+## build-js-client
+
+Generates a typed API client using `openapi-typescript-codegen`.
+Requires `operationId` on every OpenAPI operation when
+`failOnMissingOperationId` is enabled.
 
 ## Config
 

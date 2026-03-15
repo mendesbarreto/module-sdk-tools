@@ -20,6 +20,11 @@ export type SdkToolsConfig = {
   installCommand?: string;
   sdkDependencies?: string[];
   sdkDependencyPattern?: string;
+  openapiClientOutputDir?: string;
+  openapiClientPackageName?: string;
+  openapiClientHttpClient?: 'axios' | 'fetch';
+  openapiClientScript?: string;
+  failOnMissingOperationId?: boolean;
 };
 
 export type LoadConfigOptions = {
@@ -48,6 +53,9 @@ export const DEFAULT_CONFIG: SdkToolsConfig = {
   jsSdkPackageName: 'module-personal-profile-js-sdk',
   reactSdkPackageName: 'module-personal-profile-react-sdk',
   installCommand: 'bun install',
+  openapiClientOutputDir: 'sdk/packages/api',
+  openapiClientHttpClient: 'axios',
+  failOnMissingOperationId: true,
 };
 
 export async function loadConfig({

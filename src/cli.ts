@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { buildJsClient } from './commands/build-js-client';
 import { buildJsSdk } from './commands/build-js-sdk';
 import { buildReactSdk } from './commands/build-react-sdk';
 import { exportOpenapi } from './commands/export-openapi';
@@ -36,6 +37,9 @@ try {
       break;
     case 'build-js-sdk':
       await buildJsSdk(options);
+      break;
+    case 'build-js-client':
+      await buildJsClient(options);
       break;
     case 'build-react-sdk':
       await buildReactSdk(options);
@@ -114,6 +118,7 @@ Commands:
   init
   export-openapi
   build-js-sdk
+  build-js-client
   build-react-sdk
   validate-config
   report
