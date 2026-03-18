@@ -53,6 +53,15 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      - name: Test
+        run: bun test
+
       - name: Update version
         run: |
           VERSION="${{ env.GIT_BRANCH }}-${{ env.COMMIT_DATE }}-${{ env.COMMIT_TIME }}-${{ env.GH_SHA_SHORT }}"

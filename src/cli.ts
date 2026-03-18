@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
-import { buildJsClient } from "./commands/build-js-client";
-import { buildJsSdk } from "./commands/build-js-sdk";
-import { buildReactSdk } from "./commands/build-react-sdk";
-import { exportOpenapi } from "./commands/export-openapi";
-import { initConfig } from "./commands/init";
-import { report } from "./commands/report";
-import { updateSdks } from "./commands/update-sdks";
-import { validateConfigCommand } from "./commands/validate-config";
+import { buildJsClient } from './commands/build-js-client';
+import { buildJsSdk } from './commands/build-js-sdk';
+import { buildReactSdk } from './commands/build-react-sdk';
+import { exportOpenapi } from './commands/export-openapi';
+import { initConfig } from './commands/init';
+import { report } from './commands/report';
+import { updateSdks } from './commands/update-sdks';
+import { validateConfigCommand } from './commands/validate-config';
 
 type CliOptions = {
   projectRoot: string;
@@ -22,39 +22,39 @@ type CliOptions = {
 const [command, ...rest] = process.argv.slice(2);
 const options = parseOptions(rest);
 
-if (!command || command === "--help" || command === "-h") {
+if (!command || command === '--help' || command === '-h') {
   printHelp();
   process.exit(command ? 0 : 1);
 }
 
 try {
   switch (command) {
-    case "export-openapi":
+    case 'export-openapi':
       await exportOpenapi(options);
       break;
-    case "init":
+    case 'init':
       await initConfig(options);
       break;
-    case "build-js-sdk":
+    case 'build-js-sdk':
       await buildJsSdk(options);
       break;
-    case "build-js-client":
+    case 'build-js-client':
       await buildJsClient(options);
       break;
-    case "build-react-sdk":
+    case 'build-react-sdk':
       await buildReactSdk(options);
       break;
-    case "validate-config":
+    case 'validate-config':
       await validateConfigCommand({
         projectRoot: options.projectRoot,
         configPath: options.configPath,
         requireSdkTargets: false,
       });
       break;
-    case "report":
+    case 'report':
       report({ projectRoot: options.projectRoot });
       break;
-    case "update-sdks":
+    case 'update-sdks':
       await updateSdks(options);
       break;
     default:
@@ -75,32 +75,32 @@ function parseOptions(args: string[]): CliOptions {
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     switch (arg) {
-      case "--projectRoot":
-      case "-p":
+      case '--projectRoot':
+      case '-p':
         options.projectRoot = args[i + 1] ? args[i + 1] : options.projectRoot;
         i += 1;
         break;
-      case "--config":
+      case '--config':
         options.configPath = args[i + 1];
         i += 1;
         break;
-      case "--dry-run":
+      case '--dry-run':
         options.dryRun = true;
         break;
-      case "--skip-install":
+      case '--skip-install':
         options.skipInstall = true;
         break;
-      case "--skip-pack":
+      case '--skip-pack':
         options.skipPack = true;
         break;
-      case "--only":
+      case '--only':
         options.only = args[i + 1];
         i += 1;
         break;
-      case "--fail-on-missing":
+      case '--fail-on-missing':
         options.failOnMissing = true;
         break;
-      case "--force":
+      case '--force':
         options.force = true;
         break;
       default:

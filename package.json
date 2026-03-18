@@ -11,7 +11,8 @@
   },
   "scripts": {
     "format": "biome format --write --files-ignore-unknown=true",
-    "lint": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+    "lint": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
+    "test": "bun test"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
