@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { loadConfig, parseDependencyPattern, validateConfig } from '../config';
@@ -24,6 +24,7 @@ type UpdateResult = {
   name: string;
   previous?: string;
   next?: string;
+  baseUrl?: string;
   reason?: string;
 };
 
@@ -136,7 +137,7 @@ export async function updateSdks({
       devDependencies[name] = nextSpec;
     }
 
-    results.push({ name, previous: dep.spec, next: nextSpec });
+    results.push({ name, previous: dep.spec, next: nextSpec, baseUrl });
   }
 
   if (!dryRun) {
@@ -146,8 +147,14 @@ export async function updateSdks({
 
     if (!skipInstall) {
       const updatedNames = results
-        .filter((item) => item.next && item.next !== item.previous)
-        .map((item) => item.name);
+        .filter(
+          (
+            item,
+          ): item is Required<Pick<UpdateResult, 'name' | 'baseUrl'>> &
+            UpdateResult =>
+            Boolean(item.next && item.next !== item.previous && item.baseUrl),
+        )
+        .map((item) => ({ name: item.name, baseUrl: item.baseUrl }));
 
       const installCommand = config.installCommand ?? 'bun install';
       if (updatedNames.length > 0 && usesBunInstall(installCommand)) {
@@ -221,7 +228,7 @@ function usesBunInstall(command: string): boolean {
 }
 
 function clearBunCacheForDependencies(
-  names: string[],
+  dependencies: { name: string; baseUrl: string }[],
   projectRoot: string,
 ): void {
   const cacheDir = resolveBunCacheDir(projectRoot);
@@ -229,34 +236,31 @@ function clearBunCacheForDependencies(
     return;
   }
 
-  const targets = new Set<string>();
-  for (const name of names) {
-    for (const candidate of cacheCandidatesForDependency(name)) {
-      targets.add(resolve(cacheDir, candidate));
-    }
-  }
-
-  for (const target of targets) {
-    rmSync(target, { recursive: true, force: true });
-  }
-
-  const prefixes = new Set<string>();
-  for (const name of names) {
-    for (const candidate of cacheCandidatesForDependency(name)) {
-      prefixes.add(candidate);
-    }
-  }
+  const packageNames = new Set(
+    dependencies.map((dependency) => dependency.name),
+  );
+  const normalizedBaseUrls = new Set(
+    dependencies
+      .map((dependency) => normalizeGitUrlForCompare(dependency.baseUrl))
+      .filter((value) => value.length > 0),
+  );
 
   for (const entry of readdirSync(cacheDir)) {
+    const entryPath = resolve(cacheDir, entry);
+
     if (
-      Array.from(prefixes).some(
-        (prefix) =>
-          entry === prefix ||
-          entry.startsWith(`${prefix}@`) ||
-          entry.startsWith(`${prefix}-`),
-      )
+      entry.startsWith('@G@') &&
+      matchesGitPackageCacheEntry(entryPath, packageNames)
     ) {
-      rmSync(resolve(cacheDir, entry), { recursive: true, force: true });
+      rmSync(entryPath, { recursive: true, force: true });
+      continue;
+    }
+
+    if (
+      entry.endsWith('.git') &&
+      matchesGitRepoCacheEntry(entryPath, normalizedBaseUrls)
+    ) {
+      rmSync(entryPath, { recursive: true, force: true });
     }
   }
 }
@@ -279,16 +283,88 @@ function resolveBunCacheDir(projectRoot: string): string {
   return resolve(homedir(), '.bun', 'install', 'cache');
 }
 
-function cacheCandidatesForDependency(name: string): string[] {
-  const withoutAt = name.startsWith('@') ? name.slice(1) : name;
-  return [
-    name,
-    withoutAt,
-    name.replace('/', '+'),
-    withoutAt.replace('/', '+'),
-    name.replace('/', '-'),
-    withoutAt.replace('/', '-'),
-  ];
+function matchesGitPackageCacheEntry(
+  entryPath: string,
+  packageNames: Set<string>,
+): boolean {
+  const packageJsonPath = resolve(entryPath, 'package.json');
+  if (!existsSync(packageJsonPath)) {
+    return false;
+  }
+
+  try {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as {
+      name?: string;
+    };
+    return Boolean(packageJson.name && packageNames.has(packageJson.name));
+  } catch {
+    return false;
+  }
+}
+
+function matchesGitRepoCacheEntry(
+  entryPath: string,
+  normalizedBaseUrls: Set<string>,
+): boolean {
+  const configPath = resolve(entryPath, 'config');
+  if (!existsSync(configPath)) {
+    return false;
+  }
+
+  try {
+    const config = readFileSync(configPath, 'utf-8');
+    const remoteUrl = extractOriginRemoteUrl(config);
+    if (!remoteUrl) {
+      return false;
+    }
+
+    const normalizedRemote = normalizeGitUrlForCompare(remoteUrl);
+    return normalizedBaseUrls.has(normalizedRemote);
+  } catch {
+    return false;
+  }
+}
+
+function extractOriginRemoteUrl(config: string): string | undefined {
+  const lines = config.split('\n');
+  let inOriginBlock = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (line.startsWith('[') && line.endsWith(']')) {
+      inOriginBlock = line === '[remote "origin"]';
+      continue;
+    }
+
+    if (!inOriginBlock) {
+      continue;
+    }
+
+    const match = line.match(/^url\s*=\s*(.+)$/);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeGitUrlForCompare(url: string): string {
+  let normalized = normalizeRemoteUrl(url.trim());
+
+  if (normalized.startsWith('git@github.com:')) {
+    normalized = normalized.replace('git@github.com:', 'ssh://git@github.com/');
+  }
+
+  if (normalized.endsWith('.git')) {
+    normalized = normalized.slice(0, -4);
+  }
+
+  if (normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1);
+  }
+
+  return normalized;
 }
 
 function printResults(results: UpdateResult[], dryRun?: boolean): void {
