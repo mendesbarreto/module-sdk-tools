@@ -230,7 +230,6 @@ npm install ssh://git@github.com:<org>/${packageName}.git#<version>
 `;
 
   const gitignore = `node_modules/
-dist/
 *.tgz
 *.log
 .DS_Store

@@ -123,7 +123,6 @@ import { getServiceUrl } from '${packageName}';
 `;
 
   const gitignore = `node_modules/
-dist/
 *.log
 .DS_Store
 `;
