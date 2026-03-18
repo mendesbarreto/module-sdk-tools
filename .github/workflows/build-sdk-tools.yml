@@ -47,8 +47,8 @@ jobs:
           echo "COMMIT_TIME=$(git log -n 1 --pretty='format:%cd' --date=format:'%H-%M-%S')" >> $GITHUB_ENV
           echo "CURRENT_DATETIME=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
           echo "GH_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-7)" >> $GITHUB_ENV
-          git config --global user.name "mendesbarreto"
-          git config --global user.email "mendes-barreto@live.com"
+          git config --global user.name "ci-bot"
+          git config --global user.email "ci@localhost"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

@@ -1,3 +1,5 @@
+import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { loadConfig, parseDependencyPattern, validateConfig } from '../config';
 import { captureCommand, runCommand } from '../utils/exec';
@@ -143,6 +145,15 @@ export async function updateSdks({
     writeJsonFile(packageJsonPath, packageJson);
 
     if (!skipInstall) {
+      const updatedNames = results
+        .filter((item) => item.next && item.next !== item.previous)
+        .map((item) => item.name);
+
+      const installCommand = config.installCommand ?? 'bun install';
+      if (updatedNames.length > 0 && usesBunInstall(installCommand)) {
+        clearBunCacheForDependencies(updatedNames, projectRoot);
+      }
+
       runCommand(config.installCommand ?? 'bun install', { cwd: projectRoot });
     }
   }
@@ -202,6 +213,82 @@ function parseTagTimestamp(tag: string): number | undefined {
   const iso = `20${yy}-${mm}-${dd}T${hh}:${mi}:${ss}Z`;
   const ts = Date.parse(iso);
   return Number.isNaN(ts) ? undefined : ts;
+}
+
+function usesBunInstall(command: string): boolean {
+  const normalized = command.trim().toLowerCase();
+  return normalized.includes('bun') && normalized.includes('install');
+}
+
+function clearBunCacheForDependencies(
+  names: string[],
+  projectRoot: string,
+): void {
+  const cacheDir = resolveBunCacheDir(projectRoot);
+  if (!cacheDir || !existsSync(cacheDir)) {
+    return;
+  }
+
+  const targets = new Set<string>();
+  for (const name of names) {
+    for (const candidate of cacheCandidatesForDependency(name)) {
+      targets.add(resolve(cacheDir, candidate));
+    }
+  }
+
+  for (const target of targets) {
+    rmSync(target, { recursive: true, force: true });
+  }
+
+  const prefixes = new Set<string>();
+  for (const name of names) {
+    for (const candidate of cacheCandidatesForDependency(name)) {
+      prefixes.add(candidate);
+    }
+  }
+
+  for (const entry of readdirSync(cacheDir)) {
+    if (
+      Array.from(prefixes).some(
+        (prefix) =>
+          entry === prefix ||
+          entry.startsWith(`${prefix}@`) ||
+          entry.startsWith(`${prefix}-`),
+      )
+    ) {
+      rmSync(resolve(cacheDir, entry), { recursive: true, force: true });
+    }
+  }
+}
+
+function resolveBunCacheDir(projectRoot: string): string {
+  const envCache = process.env.BUN_INSTALL_CACHE_DIR;
+  if (envCache && envCache.trim().length > 0) {
+    return envCache;
+  }
+
+  try {
+    const output = captureCommand('bun pm cache', { cwd: projectRoot }).trim();
+    if (output.length > 0) {
+      return output;
+    }
+  } catch {
+    return resolve(homedir(), '.bun', 'install', 'cache');
+  }
+
+  return resolve(homedir(), '.bun', 'install', 'cache');
+}
+
+function cacheCandidatesForDependency(name: string): string[] {
+  const withoutAt = name.startsWith('@') ? name.slice(1) : name;
+  return [
+    name,
+    withoutAt,
+    name.replace('/', '+'),
+    withoutAt.replace('/', '+'),
+    name.replace('/', '-'),
+    withoutAt.replace('/', '-'),
+  ];
 }
 
 function printResults(results: UpdateResult[], dryRun?: boolean): void {
