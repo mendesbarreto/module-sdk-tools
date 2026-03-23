@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { loadConfig, validateConfig } from '../config';
 import { buildServiceUrlTemplate } from '../templates/service-url';
 import { runCommand } from '../utils/exec';
+import { resolveOrvalVersionForReactSdk } from '../utils/orval-version';
 
 export type BuildReactSdkOptions = {
   projectRoot: string;
@@ -50,6 +51,7 @@ export async function buildReactSdk({
   );
   const packageName =
     config.reactSdkPackageName ?? 'module-personal-profile-react-sdk';
+  const orvalVersion = resolveOrvalVersionForReactSdk(projectRoot);
 
   if (dryRun) {
     console.log(`[dry-run] build-react-sdk -> ${sdkOutputDir}`);
@@ -91,7 +93,7 @@ export async function buildReactSdk({
     devDependencies: {
       typescript: '^5.0.0',
       tsup: '^8.0.0',
-      orval: '^8.5.0',
+      orval: orvalVersion,
       axios: '^1.0.0',
       '@types/node': '^20.0.0',
       '@types/react': '^18.0.0',
